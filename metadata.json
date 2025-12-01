@@ -1,5 +1,5 @@
 {
-  "name": "TubeThumb Pro",
-  "description": "A professional YouTube Thumbnail Downloader and AI Auditor. Download thumbnails in 4K, HD, and SD formats, and get AI-powered insights to improve your click-through rates.",
+  "name": "YouTube Thumbnail Downloader",
+  "description": "The ultimate tool to download YouTube thumbnails in 4K, HD, and WebP. Includes AI-powered analysis, tag generation, and caption writing.",
   "requestFramePermissions": []
 }

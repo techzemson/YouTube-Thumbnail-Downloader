@@ -1,91 +1,90 @@
 import React, { useState } from 'react';
-import { Download, ExternalLink, Image as ImageIcon, AlertCircle } from 'lucide-react';
+import { Download, ExternalLink, Image as ImageIcon, Check } from 'lucide-react';
 import { ThumbnailVariant } from '../types';
 
 interface ThumbnailCardProps {
   variant: ThumbnailVariant;
-  onDownload: (url: string, filename: string) => void;
+  onDownload: (url: string, filename: string, format: 'jpg' | 'png' | 'webp') => void;
 }
 
 const ThumbnailCard: React.FC<ThumbnailCardProps> = ({ variant, onDownload }) => {
-  const [hasError, setHasError] = useState(false);
-  const [isHovered, setIsHovered] = useState(false);
+  const [downloading, setDownloading] = useState<string | null>(null);
 
-  const handleDownloadClick = () => {
-    const filename = `thumbnail-${variant.key}.jpg`;
-    onDownload(variant.url, filename);
+  const handleDownload = (format: 'jpg' | 'png' | 'webp') => {
+    setDownloading(format);
+    const filename = `thumbnail-${variant.key}.${format}`;
+    onDownload(variant.url, filename, format);
+    setTimeout(() => setDownloading(null), 1500);
   };
-
-  if (hasError) {
-    // Some videos don't have maxres, hide the card or show error state if strictly required.
-    // We will render a fallback "Not Available" card.
-    return (
-      <div className="bg-slate-100 border border-slate-200 rounded-xl p-4 flex flex-col items-center justify-center h-full min-h-[200px] text-slate-400">
-        <AlertCircle size={32} className="mb-2" />
-        <p className="text-sm font-medium">{variant.label}</p>
-        <p className="text-xs">Not available for this video</p>
-      </div>
-    );
-  }
 
   return (
     <div 
-      className={`group relative bg-white border rounded-xl overflow-hidden transition-all duration-300 ${variant.isBest ? 'border-brand-500 shadow-lg ring-1 ring-brand-100' : 'border-slate-200 shadow-sm hover:shadow-md'}`}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
+      className={`group relative bg-white border rounded-2xl overflow-hidden transition-all duration-300 flex flex-col ${variant.isBest ? 'border-brand-500 shadow-xl ring-2 ring-brand-100 col-span-1 md:col-span-2 lg:col-span-2' : 'border-slate-200 shadow-sm hover:shadow-md'}`}
     >
       {variant.isBest && (
-        <div className="absolute top-0 right-0 bg-brand-600 text-white text-xs font-bold px-3 py-1 rounded-bl-lg z-10">
-          BEST QUALITY
+        <div className="absolute top-0 left-0 bg-brand-600 text-white text-xs font-bold px-4 py-1.5 rounded-br-xl z-10 shadow-md">
+          RECOMMENDED
         </div>
       )}
 
-      {/* Image Container */}
-      <div className="aspect-video w-full relative bg-slate-100 overflow-hidden">
+      {/* Image Area */}
+      <div className={`w-full relative bg-slate-100 overflow-hidden ${variant.isBest ? 'aspect-video' : 'aspect-video'}`}>
         <img 
           src={variant.url} 
           alt={variant.label} 
           className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-          onError={() => setHasError(true)}
         />
         
-        {/* Overlay Actions (Visible on hover or mobile tap) */}
-        <div className={`absolute inset-0 bg-black/40 flex items-center justify-center gap-2 transition-opacity duration-300 ${isHovered ? 'opacity-100' : 'opacity-0'}`}>
+        <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-4">
            <a 
             href={variant.url} 
             target="_blank" 
             rel="noopener noreferrer"
-            className="p-2 bg-white/20 backdrop-blur-sm hover:bg-white text-white hover:text-brand-600 rounded-full transition-colors"
-            title="Open in new tab"
+            className="text-white hover:text-brand-400 text-sm font-medium flex items-center gap-1"
            >
-             <ExternalLink size={20} />
+             <ExternalLink size={16} /> Open in Tab
            </a>
+           <span className="text-white/80 text-xs font-mono">{variant.resolution}</span>
         </div>
       </div>
 
-      {/* Details Footer */}
-      <div className="p-4 flex flex-col gap-3">
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="font-bold text-slate-800 text-sm md:text-base">{variant.label}</h3>
-            <div className="flex items-center gap-1.5 text-xs text-slate-500 mt-1">
-              <ImageIcon size={12} />
-              <span>{variant.resolution}</span>
-            </div>
+      {/* Details & Actions */}
+      <div className="p-5 flex flex-col gap-4 flex-grow">
+        <div className="flex items-center justify-between">
+          <h3 className="font-bold text-slate-800 text-lg">{variant.label}</h3>
+          <div className="bg-slate-100 text-slate-600 px-2 py-1 rounded text-xs font-mono border border-slate-200">
+            {variant.key.toUpperCase()}
           </div>
         </div>
 
-        <button 
-          onClick={handleDownloadClick}
-          className={`w-full flex items-center justify-center gap-2 py-2.5 px-4 rounded-lg font-semibold text-sm transition-all active:scale-95 ${
-            variant.isBest 
-            ? 'bg-brand-600 hover:bg-brand-700 text-white shadow-brand-200 shadow-lg' 
-            : 'bg-slate-100 hover:bg-slate-200 text-slate-700'
-          }`}
-        >
-          <Download size={16} />
-          Download Image
-        </button>
+        <div className="mt-auto grid grid-cols-3 gap-2">
+            {/* JPG Button */}
+            <button 
+                onClick={() => handleDownload('jpg')}
+                className="flex items-center justify-center gap-1 py-2 px-2 rounded-lg bg-slate-900 text-white hover:bg-slate-800 text-xs font-bold transition-all active:scale-95"
+            >
+                {downloading === 'jpg' ? <Check size={14} /> : <Download size={14} />}
+                JPG
+            </button>
+
+            {/* PNG Button */}
+            <button 
+                onClick={() => handleDownload('png')}
+                className="flex items-center justify-center gap-1 py-2 px-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 text-xs font-bold transition-all active:scale-95"
+            >
+                {downloading === 'png' ? <Check size={14} /> : <Download size={14} />}
+                PNG
+            </button>
+
+             {/* WebP Button */}
+             <button 
+                onClick={() => handleDownload('webp')}
+                className="flex items-center justify-center gap-1 py-2 px-2 rounded-lg bg-slate-100 text-slate-700 hover:bg-slate-200 border border-slate-200 text-xs font-bold transition-all active:scale-95"
+            >
+                {downloading === 'webp' ? <Check size={14} /> : <Download size={14} />}
+                WebP
+            </button>
+        </div>
       </div>
     </div>
   );

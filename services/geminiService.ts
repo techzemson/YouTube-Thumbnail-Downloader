@@ -1,10 +1,7 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { AIAnalysisResult } from "../types";
 
-// In a real production app, you might want to proxy this through a backend to protect the key,
-// but for this client-side demo, we use the env variable.
 const apiKey = process.env.API_KEY || ''; 
-
 const ai = new GoogleGenAI({ apiKey });
 
 export const analyzeThumbnail = async (base64Image: string): Promise<AIAnalysisResult> => {
@@ -12,25 +9,21 @@ export const analyzeThumbnail = async (base64Image: string): Promise<AIAnalysisR
     throw new Error("API Key is missing. AI features are unavailable.");
   }
 
-  const model = "gemini-2.5-flash"; // Efficient for image analysis
+  const model = "gemini-2.5-flash"; 
 
   const prompt = `
     Analyze this YouTube thumbnail as an expert social media marketer and graphic designer.
-    Provide a structured JSON response.
     
-    Evaluate:
-    1. Visual clarity and text readability.
-    2. Emotional impact.
-    3. Click-through potential.
-    
-    Return the response in this exact JSON schema:
-    {
-      "score": number (0-100),
-      "strengths": string[] (3 bullet points),
-      "weaknesses": string[] (3 bullet points),
-      "suggestions": string[] (3 actionable improvements),
-      "summary": string (1 short paragraph)
-    }
+    Tasks:
+    1. Score the design (0-100).
+    2. Identify strengths and weaknesses.
+    3. Suggest actionable improvements.
+    4. Generate 5-7 viral SEO hashtags relevant to the visual content.
+    5. Write a catchy, engaging social media caption for this video.
+    6. Extract the 4 dominant colors as Hex codes.
+    7. Determine the emotional sentiment (e.g., Exciting, Scary, Educational).
+
+    Return JSON.
   `;
 
   try {
@@ -58,9 +51,13 @@ export const analyzeThumbnail = async (base64Image: string): Promise<AIAnalysisR
             strengths: { type: Type.ARRAY, items: { type: Type.STRING } },
             weaknesses: { type: Type.ARRAY, items: { type: Type.STRING } },
             suggestions: { type: Type.ARRAY, items: { type: Type.STRING } },
-            summary: { type: Type.STRING }
+            summary: { type: Type.STRING },
+            hashtags: { type: Type.ARRAY, items: { type: Type.STRING } },
+            caption: { type: Type.STRING },
+            dominantColors: { type: Type.ARRAY, items: { type: Type.STRING } },
+            sentiment: { type: Type.STRING }
           },
-          required: ["score", "strengths", "weaknesses", "suggestions", "summary"]
+          required: ["score", "strengths", "weaknesses", "suggestions", "summary", "hashtags", "caption", "dominantColors", "sentiment"]
         }
       }
     });

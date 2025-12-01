@@ -19,6 +19,10 @@ export interface AIAnalysisResult {
   weaknesses: string[];
   suggestions: string[];
   summary: string;
+  hashtags: string[];
+  caption: string;
+  dominantColors: string[];
+  sentiment: string;
 }
 
 export enum AppState {

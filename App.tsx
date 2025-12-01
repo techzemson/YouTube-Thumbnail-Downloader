@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Youtube, Search, AlertCircle, Link, ShieldCheck, Download, Zap, Sparkles } from 'lucide-react';
-import { extractVideoId, generateThumbnails } from './services/youtubeService';
+import { Youtube, Search, AlertCircle, Link, ShieldCheck, History as HistoryIcon, Zap, Check } from 'lucide-react';
+import { extractVideoId, generateThumbnails, downloadImageAs } from './services/youtubeService';
 import { VideoData, AppState } from './types';
 import ProgressBar from './components/ProgressBar';
 import ThumbnailCard from './components/ThumbnailCard';
@@ -14,12 +14,11 @@ function App() {
   const [currentVideo, setCurrentVideo] = useState<VideoData | null>(null);
   const [history, setHistory] = useState<VideoData[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
+  const [isHistoryOpen, setIsHistoryOpen] = useState(false);
   
-  // Progress Interval Ref
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   useEffect(() => {
-    // Load history from local storage
     const savedHistory = localStorage.getItem('thumb_history');
     if (savedHistory) {
       try {
@@ -31,7 +30,7 @@ function App() {
   }, []);
 
   const addToHistory = (videoData: VideoData) => {
-    const newHistory = [videoData, ...history.filter(h => h.id !== videoData.id)].slice(0, 9); // Keep last 9
+    const newHistory = [videoData, ...history.filter(h => h.id !== videoData.id)].slice(0, 15);
     setHistory(newHistory);
     localStorage.setItem('thumb_history', JSON.stringify(newHistory));
   };
@@ -54,19 +53,15 @@ function App() {
     setProgress(0);
     setCurrentVideo(null);
 
-    // Simulate analysis progress for UX
     let currentProgress = 0;
     if (progressInterval.current) clearInterval(progressInterval.current);
 
     progressInterval.current = setInterval(() => {
-      currentProgress += Math.random() * 15;
-      if (currentProgress > 90) {
-         currentProgress = 90; // Wait for finalization
-      }
+      currentProgress += Math.random() * 12;
+      if (currentProgress > 95) currentProgress = 95;
       setProgress(currentProgress);
-    }, 200);
+    }, 150);
 
-    // Artificial delay to show the progress bar (feeling of "work" being done)
     setTimeout(() => {
       if (progressInterval.current) clearInterval(progressInterval.current);
       setProgress(100);
@@ -82,7 +77,7 @@ function App() {
       setCurrentVideo(videoData);
       addToHistory(videoData);
       setAppState(AppState.READY);
-    }, 1500);
+    }, 1200);
   };
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -90,214 +85,174 @@ function App() {
     startAnalysis(url);
   };
 
-  const handleDownload = (imageUrl: string, filename: string) => {
-    // Basic download handler creating a link element
-    // Note: For cross-origin images, this might open in a new tab instead of force downloading
-    // unless proxying is used. We use target="_blank" fallback in component if needed, 
-    // but here we try the blob method.
-    
-    fetch(imageUrl)
-      .then(response => response.blob())
-      .then(blob => {
-        const blobUrl = window.URL.createObjectURL(blob);
-        const link = document.createElement('a');
-        link.href = blobUrl;
-        link.download = filename;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        window.URL.revokeObjectURL(blobUrl);
-      })
-      .catch(() => {
-        // Fallback: just open in new tab
-        window.open(imageUrl, '_blank');
-      });
-  };
-
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-brand-500 selection:text-white">
+      
+      {/* Drawer */}
+      <HistoryList 
+        history={history} 
+        onSelect={(histUrl) => { setUrl(histUrl); startAnalysis(histUrl); }}
+        onClear={clearHistory}
+        isOpen={isHistoryOpen}
+        onClose={() => setIsHistoryOpen(false)}
+      />
+
       {/* Header */}
-      <header className="bg-white border-b border-slate-200 sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center gap-2 cursor-pointer" onClick={() => {setAppState(AppState.IDLE); setUrl('');}}>
-            <div className="bg-brand-600 p-2 rounded-lg text-white">
+      <header className="bg-white border-b border-slate-200 sticky top-0 z-40 shadow-sm">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 h-16 flex items-center justify-between">
+          <div className="flex items-center gap-3 cursor-pointer group" onClick={() => {setAppState(AppState.IDLE); setUrl('');}}>
+            <div className="bg-brand-600 p-2 rounded-xl text-white shadow-lg shadow-brand-200 group-hover:scale-105 transition-transform">
               <Youtube size={24} fill="currentColor" strokeWidth={0} />
             </div>
-            <span className="text-xl font-bold bg-clip-text text-transparent bg-gradient-to-r from-brand-700 to-brand-500">
-              TubeThumb Pro
+            <span className="text-xl font-bold text-slate-800 tracking-tight">
+              YouTube Thumbnail Downloader
             </span>
           </div>
-          <div className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-600">
-            <a href="#" className="hover:text-brand-600 transition-colors">Features</a>
-            <a href="#" className="hover:text-brand-600 transition-colors">How to Use</a>
-            <button className="bg-slate-900 text-white px-4 py-2 rounded-full hover:bg-slate-800 transition-colors">
-              Get Started
-            </button>
-          </div>
+          
+          <button 
+            onClick={() => setIsHistoryOpen(true)}
+            className="p-2 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-full transition-all relative"
+            title="View History"
+          >
+            <HistoryIcon size={24} />
+            {history.length > 0 && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-brand-500 rounded-full border border-white"></span>}
+          </button>
         </div>
       </header>
 
       {/* Main Content */}
-      <main className="flex-grow flex flex-col items-center justify-start py-12 px-4 sm:px-6 relative overflow-hidden">
+      <main className="flex-grow flex flex-col items-center justify-start pt-16 pb-12 px-4 sm:px-6 relative overflow-hidden">
         
-        {/* Background decorative elements */}
-        <div className="absolute top-0 left-1/4 w-96 h-96 bg-brand-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-        <div className="absolute top-0 right-1/4 w-96 h-96 bg-purple-100 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
+        {/* Background Gradients */}
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[1000px] h-[600px] bg-brand-500/5 rounded-full filter blur-[120px] -z-10 pointer-events-none"></div>
 
         {/* Hero Section */}
-        <div className="relative z-10 w-full max-w-3xl text-center mb-10">
-          <h1 className="text-4xl md:text-6xl font-black text-slate-900 tracking-tight mb-4">
-            Download <span className="text-brand-600">HD Thumbnails</span>
-            <br /> from YouTube Instantly.
+        <div className="w-full max-w-4xl mx-auto text-center mb-12">
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-black text-slate-900 tracking-tight mb-6 leading-tight">
+            Download HD Thumbnails from <br className="hidden md:block"/>
+            <span className="text-brand-600 relative inline-block">
+                YouTube URL
+                <svg className="absolute w-full h-3 -bottom-1 left-0 text-brand-200 -z-10" viewBox="0 0 100 10" preserveAspectRatio="none"><path d="M0 5 Q 50 10 100 5" stroke="currentColor" strokeWidth="8" fill="none" /></svg>
+            </span> Instantly
           </h1>
-          <p className="text-lg text-slate-600 mb-8 max-w-2xl mx-auto">
-            Extract high-quality images from any YouTube video in seconds. 
-            Analyze visuals with AI to maximize your click-through rates.
+          <p className="text-lg text-slate-600 mb-10 max-w-2xl mx-auto leading-relaxed">
+            The most advanced tool to grab 4K thumbnails, convert formats, and analyze visuals with AI.
           </p>
 
-          {/* Search Bar */}
-          <form onSubmit={handleSubmit} className="relative w-full max-w-2xl mx-auto">
-            <div className="relative flex items-center">
-              <div className="absolute left-4 text-slate-400 pointer-events-none">
-                <Link size={20} />
+          {/* Massive Search Bar */}
+          <form onSubmit={handleSubmit} className="relative w-full max-w-5xl mx-auto transform transition-all hover:-translate-y-1">
+            <div className="relative group">
+              <div className="absolute -inset-1 bg-gradient-to-r from-brand-500 to-orange-500 rounded-2xl blur opacity-25 group-hover:opacity-50 transition duration-1000 group-hover:duration-200"></div>
+              <div className="relative flex items-center bg-white rounded-2xl shadow-2xl">
+                <div className="absolute left-6 text-slate-400">
+                  <Link size={24} />
+                </div>
+                <input
+                  type="text"
+                  placeholder="Paste YouTube Video URL here (e.g., https://www.youtube.com/watch?v=...)"
+                  className="w-full pl-16 pr-44 h-20 rounded-2xl border-0 focus:ring-0 text-xl text-slate-800 placeholder:text-slate-300 font-medium"
+                  value={url}
+                  onChange={(e) => setUrl(e.target.value)}
+                />
+                <button
+                  type="submit"
+                  className="absolute right-3 top-3 bottom-3 bg-brand-600 hover:bg-brand-700 text-white text-lg font-bold px-8 rounded-xl transition-all active:scale-95 flex items-center gap-2 shadow-lg shadow-brand-200"
+                  disabled={appState === AppState.ANALYZING}
+                >
+                  {appState === AppState.ANALYZING ? (
+                       <span className="animate-spin rounded-full h-6 w-6 border-4 border-white border-t-transparent"></span>
+                  ) : (
+                      <>
+                        <Search size={22} />
+                        <span className="hidden sm:inline">Get Thumbnails</span>
+                      </>
+                  )}
+                </button>
               </div>
-              <input
-                type="text"
-                placeholder="Paste YouTube Video URL here..."
-                className="w-full pl-12 pr-36 py-4 rounded-2xl border-2 border-slate-200 focus:border-brand-500 focus:ring-4 focus:ring-brand-100 outline-none transition-all shadow-xl shadow-slate-200/50 text-lg"
-                value={url}
-                onChange={(e) => setUrl(e.target.value)}
-              />
-              <button
-                type="submit"
-                className="absolute right-2 top-2 bottom-2 bg-brand-600 hover:bg-brand-700 text-white font-bold px-6 rounded-xl transition-all active:scale-95 flex items-center gap-2"
-                disabled={appState === AppState.ANALYZING}
-              >
-                {appState === AppState.ANALYZING ? (
-                    <span className="flex items-center gap-2">
-                        <span className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></span>
-                        Working
-                    </span>
-                ) : (
-                    <>
-                        <Search size={20} />
-                        <span className="hidden sm:inline">Get Thumbnail</span>
-                    </>
-                )}
-              </button>
             </div>
             {errorMsg && (
-              <div className="absolute -bottom-8 left-0 right-0 flex items-center justify-center text-red-500 text-sm font-medium animate-bounce">
-                <AlertCircle size={16} className="mr-1" />
+              <div className="mt-4 flex items-center justify-center text-red-500 font-semibold bg-red-50 py-2 px-4 rounded-full inline-flex mx-auto border border-red-100">
+                <AlertCircle size={18} className="mr-2" />
                 {errorMsg}
               </div>
             )}
           </form>
         </div>
 
-        {/* Progress State */}
+        {/* Progress */}
         {appState === AppState.ANALYZING && (
           <ProgressBar progress={progress} />
         )}
 
-        {/* Results State */}
+        {/* Results */}
         {appState === AppState.READY && currentVideo && (
-          <div className="w-full max-w-6xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700">
+          <div className="w-full max-w-7xl mx-auto animate-in fade-in slide-in-from-bottom-8 duration-700 space-y-12">
             
-            <div className="flex items-center justify-between mb-6">
-                <h2 className="text-2xl font-bold text-slate-800">Results Found</h2>
-                <div className="flex gap-2 text-sm">
-                   <span className="bg-green-100 text-green-700 px-3 py-1 rounded-full font-medium flex items-center gap-1">
-                     <ShieldCheck size={14} /> Safe to download
-                   </span>
+            <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div>
+                   <h2 className="text-3xl font-bold text-slate-900">Ready to Download</h2>
+                   <p className="text-slate-500 mt-1">Found 5 variants for this video.</p>
+                </div>
+                <span className="bg-green-100 text-green-700 px-4 py-2 rounded-full font-bold text-sm flex items-center gap-2 border border-green-200">
+                     <ShieldCheck size={16} /> Secure Client-Side Download
+                </span>
+            </div>
+
+            {/* Thumbnails Grid */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+               {/* Max Res Card */}
+               <ThumbnailCard 
+                 variant={currentVideo.thumbnails[0]} 
+                 onDownload={downloadImageAs} 
+               />
+               
+               {/* Standard & High */}
+               <ThumbnailCard variant={currentVideo.thumbnails[1]} onDownload={downloadImageAs} />
+               <ThumbnailCard variant={currentVideo.thumbnails[2]} onDownload={downloadImageAs} />
+            </div>
+
+            {/* AI Section */}
+            <AIAnalyzer bestThumbnail={currentVideo.thumbnails[0]} />
+
+            {/* Remaining Formats */}
+            <div className="bg-white rounded-2xl border border-slate-200 p-8">
+                <h3 className="text-xl font-bold text-slate-800 mb-6 flex items-center gap-2">
+                    <Zap className="text-yellow-500" /> More Sizes & Formats
+                </h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
+                    {currentVideo.thumbnails.slice(3).map((thumb) => (
+                        <div key={thumb.key} className="group bg-slate-50 hover:bg-white p-4 rounded-xl border border-slate-100 hover:border-brand-200 hover:shadow-lg transition-all text-center">
+                            <div className="relative mb-3 rounded-lg overflow-hidden aspect-video">
+                                <img src={thumb.url} alt={thumb.label} className="w-full h-full object-cover opacity-80 group-hover:opacity-100 transition-opacity" />
+                            </div>
+                            <p className="font-bold text-slate-700 text-sm mb-1">{thumb.label}</p>
+                            <p className="text-xs text-slate-400 mb-3">{thumb.resolution}</p>
+                            <button 
+                                onClick={() => downloadImageAs(thumb.url, `thumb-${thumb.key}.jpg`)}
+                                className="w-full py-2 bg-white border border-slate-200 text-slate-600 hover:text-brand-600 hover:border-brand-200 rounded-lg text-xs font-bold transition-colors"
+                            >
+                                Download JPG
+                            </button>
+                        </div>
+                    ))}
                 </div>
             </div>
 
-            {/* Grid for Thumbnails */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-12">
-               {/* Main (Max Res) Card takes larger space on mobile or first slot */}
-               <div className="lg:col-span-2 row-span-2">
-                  <ThumbnailCard 
-                    variant={currentVideo.thumbnails[0]} 
-                    onDownload={handleDownload} 
-                  />
-               </div>
-               
-               {/* Other variants */}
-               <div className="grid grid-cols-1 gap-6 h-full">
-                  <ThumbnailCard variant={currentVideo.thumbnails[1]} onDownload={handleDownload} />
-                  <ThumbnailCard variant={currentVideo.thumbnails[2]} onDownload={handleDownload} />
-               </div>
-            </div>
-
-            {/* AI Analysis Section */}
-            <AIAnalyzer bestThumbnail={currentVideo.thumbnails[0]} />
-
-            {/* Additional Standard Qualities (Bottom Row) */}
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-8">
-               {currentVideo.thumbnails.slice(3).map((thumb) => (
-                   <div key={thumb.key} className="bg-white p-3 rounded-lg border border-slate-200 flex flex-col items-center text-center">
-                       <p className="text-xs font-bold text-slate-500 mb-2">{thumb.label}</p>
-                       <img src={thumb.url} alt={thumb.label} className="w-full rounded mb-2 opacity-80" />
-                       <button 
-                         onClick={() => handleDownload(thumb.url, `thumb-${thumb.key}.jpg`)}
-                         className="text-xs text-brand-600 hover:underline flex items-center gap-1"
-                       >
-                           <Download size={12} /> Download
-                       </button>
-                   </div>
-               ))}
-            </div>
           </div>
-        )}
-
-        {/* History Section */}
-        {appState !== AppState.ANALYZING && (
-          <HistoryList 
-            history={history} 
-            onSelect={(histUrl) => { setUrl(histUrl); startAnalysis(histUrl); }}
-            onClear={clearHistory}
-          />
-        )}
-
-        {/* Features Grid (SEO/Info) */}
-        {appState === AppState.IDLE && (
-           <div className="mt-24 grid grid-cols-1 md:grid-cols-3 gap-8 max-w-6xl w-full">
-              <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-shadow">
-                 <div className="w-12 h-12 bg-blue-100 rounded-xl flex items-center justify-center text-blue-600 mb-4">
-                    <Zap size={24} />
-                 </div>
-                 <h3 className="text-xl font-bold text-slate-800 mb-2">Lightning Fast</h3>
-                 <p className="text-slate-600">Extracts thumbnails instantly using advanced parsing logic without page reloads.</p>
-              </div>
-              <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-shadow">
-                 <div className="w-12 h-12 bg-purple-100 rounded-xl flex items-center justify-center text-purple-600 mb-4">
-                    <Sparkles size={24} />
-                 </div>
-                 <h3 className="text-xl font-bold text-slate-800 mb-2">AI Powered</h3>
-                 <p className="text-slate-600">Get insights on your thumbnail's emotional impact and readability using Gemini AI.</p>
-              </div>
-              <div className="p-6 bg-white rounded-2xl shadow-sm border border-slate-100 hover:shadow-lg transition-shadow">
-                 <div className="w-12 h-12 bg-green-100 rounded-xl flex items-center justify-center text-green-600 mb-4">
-                    <Download size={24} />
-                 </div>
-                 <h3 className="text-xl font-bold text-slate-800 mb-2">4K Downloads</h3>
-                 <p className="text-slate-600">Access the maximum resolution image stored on YouTube servers (where available).</p>
-              </div>
-           </div>
         )}
 
       </main>
 
-      {/* Footer */}
-      <footer className="bg-slate-50 border-t border-slate-200 mt-auto">
-        <div className="max-w-7xl mx-auto px-4 py-8 flex flex-col md:flex-row items-center justify-between text-slate-500 text-sm">
-          <p>&copy; {new Date().getFullYear()} TubeThumb Pro. Free Tool.</p>
-          <div className="flex gap-4 mt-4 md:mt-0">
-             <a href="#" className="hover:text-brand-600">Privacy Policy</a>
-             <a href="#" className="hover:text-brand-600">Terms of Service</a>
-             <a href="#" className="hover:text-brand-600">Contact</a>
+      {/* Simplified Footer */}
+      <footer className="bg-white border-t border-slate-200 py-8 mt-auto">
+        <div className="max-w-7xl mx-auto px-4 flex flex-col items-center justify-center text-center">
+          <div className="flex items-center gap-2 mb-4 opacity-50 grayscale">
+              <Youtube size={20} />
+              <span className="font-bold">YouTube Thumbnail Downloader</span>
           </div>
+          <p className="text-slate-400 text-sm">
+             Built for creators. Not affiliated with YouTube.
+          </p>
         </div>
       </footer>
     </div>
