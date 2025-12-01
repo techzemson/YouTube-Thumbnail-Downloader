@@ -111,11 +111,12 @@ function App() {
           
           <button 
             onClick={() => setIsHistoryOpen(true)}
-            className="p-2 text-slate-500 hover:text-brand-600 hover:bg-brand-50 rounded-full transition-all relative"
+            className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-brand-600 bg-slate-100 hover:bg-brand-50 rounded-xl transition-all relative font-semibold border border-transparent hover:border-brand-200"
             title="View History"
           >
-            <HistoryIcon size={24} />
-            {history.length > 0 && <span className="absolute top-1 right-1 w-2.5 h-2.5 bg-brand-500 rounded-full border border-white"></span>}
+            <HistoryIcon size={18} />
+            <span>History</span>
+            {history.length > 0 && <span className="absolute -top-1 -right-1 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-brand-500"></span></span>}
           </button>
         </div>
       </header>

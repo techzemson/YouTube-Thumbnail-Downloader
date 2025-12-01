@@ -90,7 +90,7 @@ const AIAnalyzer: React.FC<AIAnalyzerProps> = ({ bestThumbnail }) => {
                 {/* Score Card */}
                 <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 flex flex-col items-center justify-center text-center">
                      <div className="relative w-24 h-24 mb-3">
-                        <svg className="w-full h-full transform -rotate-90">
+                        <svg className="w-full h-full transform -rotate-90" viewBox="0 0 96 96">
                             <circle cx="48" cy="48" r="40" stroke="#e2e8f0" strokeWidth="8" fill="transparent" />
                             <circle cx="48" cy="48" r="40" stroke="currentColor" strokeWidth="8" fill="transparent" 
                                     strokeDasharray={40 * 2 * Math.PI} 
@@ -123,7 +123,7 @@ const AIAnalyzer: React.FC<AIAnalyzerProps> = ({ bestThumbnail }) => {
                     <div className="flex gap-3">
                         {analysis.dominantColors.map((color, i) => (
                             <div key={i} className="flex-1 h-12 rounded-lg shadow-sm flex items-end justify-center pb-1 group cursor-pointer relative" style={{ backgroundColor: color }} title={color}>
-                                <span className="bg-black/50 text-white text-[10px] px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity absolute top-[-25px]">{color}</span>
+                                <span className="bg-black/50 text-white text-[10px] px-1 rounded opacity-0 group-hover:opacity-100 transition-opacity absolute top-[-25px] whitespace-nowrap z-10">{color}</span>
                             </div>
                         ))}
                     </div>
