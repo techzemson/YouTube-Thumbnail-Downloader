@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Youtube, Search, AlertCircle, Link, ShieldCheck, History as HistoryIcon, Zap, Check } from 'lucide-react';
+import { Youtube, Search, AlertCircle, Link, ShieldCheck, History as HistoryIcon, Zap, Check, BookOpen } from 'lucide-react';
 import { extractVideoId, generateThumbnails, downloadImageAs } from './services/youtubeService';
 import { VideoData, AppState } from './types';
 import ProgressBar from './components/ProgressBar';
 import ThumbnailCard from './components/ThumbnailCard';
 import HistoryList from './components/HistoryList';
 import AIAnalyzer from './components/AIAnalyzer';
+import Documentation from './components/Documentation';
 
 function App() {
   const [url, setUrl] = useState('');
@@ -15,6 +16,7 @@ function App() {
   const [history, setHistory] = useState<VideoData[]>([]);
   const [errorMsg, setErrorMsg] = useState('');
   const [isHistoryOpen, setIsHistoryOpen] = useState(false);
+  const [isDocsOpen, setIsDocsOpen] = useState(false);
   
   const progressInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -88,6 +90,9 @@ function App() {
   return (
     <div className="min-h-screen flex flex-col bg-slate-50 font-sans selection:bg-brand-500 selection:text-white">
       
+      {/* Documentation Modal */}
+      <Documentation isOpen={isDocsOpen} onClose={() => setIsDocsOpen(false)} />
+
       {/* Drawer */}
       <HistoryList 
         history={history} 
@@ -104,20 +109,34 @@ function App() {
             <div className="bg-brand-600 p-2 rounded-xl text-white shadow-lg shadow-brand-200 group-hover:scale-105 transition-transform">
               <Youtube size={24} fill="currentColor" strokeWidth={0} />
             </div>
-            <span className="text-xl font-bold text-slate-800 tracking-tight">
+            <span className="text-xl font-bold text-slate-800 tracking-tight hidden sm:block">
               YouTube Thumbnail Downloader
+            </span>
+            <span className="text-xl font-bold text-slate-800 tracking-tight sm:hidden">
+              TubeThumb
             </span>
           </div>
           
-          <button 
-            onClick={() => setIsHistoryOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 text-slate-600 hover:text-brand-600 bg-slate-100 hover:bg-brand-50 rounded-xl transition-all relative font-semibold border border-transparent hover:border-brand-200"
-            title="View History"
-          >
-            <HistoryIcon size={18} />
-            <span>History</span>
-            {history.length > 0 && <span className="absolute -top-1 -right-1 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-brand-500"></span></span>}
-          </button>
+          <div className="flex items-center gap-2 sm:gap-3">
+             <button 
+                onClick={() => setIsDocsOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-brand-600 bg-white hover:bg-slate-50 rounded-xl transition-all font-semibold border border-transparent hover:border-slate-200"
+                title="Documentation"
+              >
+                <BookOpen size={18} />
+                <span className="hidden sm:inline">Documentation</span>
+              </button>
+
+              <button 
+                onClick={() => setIsHistoryOpen(true)}
+                className="flex items-center gap-2 px-3 py-2 text-slate-600 hover:text-brand-600 bg-slate-100 hover:bg-brand-50 rounded-xl transition-all relative font-semibold border border-transparent hover:border-brand-200"
+                title="View History"
+              >
+                <HistoryIcon size={18} />
+                <span className="hidden sm:inline">History</span>
+                {history.length > 0 && <span className="absolute -top-1 -right-1 flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-400 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-brand-500"></span></span>}
+              </button>
+          </div>
         </div>
       </header>
 
